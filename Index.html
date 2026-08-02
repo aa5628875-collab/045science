@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Knight's Journey : ภารกิจช่วยเจ้าหญิง (วิทยาศาสตร์น่ารู้)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Kanit & Prompt) -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Prompt:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fantasy: {
+                            gold: '#f59e0b',
+                            wood: '#854d0e',
+                            woodDark: '#451a03',
+                            stone: '#334155',
+                            stoneDark: '#1e293b',
+                            purple: '#6b21a8',
+                            blue: '#1e3a8a',
+                            emerald: '#065f46'
+                        }
+                    },
+                    fontFamily: {
+                        kanit: ['Kanit', 'sans-serif'],
+                        prompt: ['Prompt', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* RPG UI Styling */
+        .btn-rpg-wood {
+            background: linear-gradient(180deg, #a16207 0%, #713f12 100%);
+            border: 3px solid #fef08a;
+            box-shadow: 0 4px 0 #361a06, inset 0 2px 0 rgba(255,255,255,0.3);
+            text-shadow: 1px 1px 2px #000;
+            transition: all 0.1s ease;
+        }
+        .btn-rpg-wood:hover {
+            background: linear-gradient(180deg, #ca8a04 0%, #854d0e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #361a06, inset 0 2px 0 rgba(255,255,255,0.4);
+        }
+        .btn-rpg-wood:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #361a06;
+        }
+
+        .btn-rpg-purple {
+            background: linear-gradient(180deg, #9333ea 0%, #6b21a8 100%);
+            border: 3px solid #e9d5ff;
+            box-shadow: 0 4px 0 #3b0764, inset 0 2px 0 rgba(255,255,255,0.3);
+            text-shadow: 1px 1px 2px #000;
+        }
+        .btn-rpg-purple:hover {
+            background: linear-gradient(180deg, #a855f7 0%, #7e22ce 100%);
+            transform: translateY(-2px);
+        }
+
+        .rpg-box-stone {
+            background: rgba(30, 41, 59, 0.94);
+            border: 4px solid #64748b;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 8px 25px rgba(0,0,0,0.6);
+            border-image: linear-gradient(to bottom, #94a3b8, #475569) 1;
+        }
+
+        /* Custom Animations */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+            animation: floatSlow 3s ease-in-out infinite;
+        }
+
+        @keyframes attackKnight {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(80px) scale(1.1); }
+            100% { transform: translateX(0); }
+        }
+        .animate-attack-knight {
+            animation: attackKnight 0.6s ease-in-out;
+        }
+
+        @keyframes hitDemon {
+            0% { filter: brightness(1); }
+            20% { filter: brightness(3) sepia(1) hue-rotate(-50deg); transform: scale(0.95); }
+            100% { filter: brightness(1); }
+        }
+        .animate-hit-demon {
+            animation: hitDemon 0.6s ease-in-out;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #64748b;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between select-none">
+
+    <!-- Top Bar (Header HUD) -->
+    <header id="hud-bar" class="hidden fixed top-0 left-0 right-0 z-40 bg-slate-900/90 border-b-2 border-amber-600/50 backdrop-blur-md px-4 py-2 flex justify-between items-center shadow-lg">
+        <!-- Status -->
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-amber-600 border-2 border-yellow-300 flex items-center justify-center text-xl shadow">
+                🛡️
+            </div>
+            <div>
+                <div class="text-xs text-amber-300 font-semibold uppercase tracking-wider">อัศวินวิทยาศาสตร์</div>
+                <div class="flex items-center space-x-1" id="hearts-container"></div>
+            </div>
+        </div>
+
+        <!-- Inventory Badges & Editor Switch -->
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center bg-slate-800/80 border border-purple-500/50 px-3 py-1 rounded-full text-sm font-bold text-purple-300 shadow">
+                <span class="mr-1.5 text-base animate-pulse">💎</span>
+                <span id="gem-count">0</span>/12
+            </div>
+            <div class="flex items-center bg-slate-800/80 border border-amber-500/50 px-3 py-1 rounded-full text-sm font-bold text-amber-400 shadow">
+                <span class="mr-1 text-base">⭐</span>
+                <span id="score-count">0</span>
+            </div>
+            <button onclick="openCanvaEditor()" class="btn-rpg-purple text-xs px-3 py-1.5 rounded-lg text-purple-100 font-bold flex items-center gap-1 shadow">
+                <span>🎨</span> <span class="hidden sm:inline">แก้ไขโจทย์ (Canva)</span>
+            </button>
+            <button onclick="goToMap()" id="hud-map-btn" class="hidden text-xs bg-slate-700 hover:bg-slate-600 border border-slate-500 px-2.5 py-1.5 rounded text-slate-200 transition">
+                🗺️ แผนที่
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main id="game-container" class="relative w-full max-w-5xl mx-auto flex-grow flex flex-col justify-center items-center p-2 sm:p-4 min-h-screen">
+        
+        <!-- ==================== 1. MAIN MENU SCREEN ==================== -->
+        <section id="screen-main-menu" class="w-full flex flex-col items-center justify-between min-h-[90vh] rounded-3xl p-6 relative overflow-hidden bg-cover bg-center border-4 border-amber-700/60 shadow-2xl my-auto" 
+            style="background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.8)), url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop');">
+            
+            <div class="absolute top-12 text-center opacity-80 pointer-events-none">
+                <div class="text-6xl sm:text-8xl drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] animate-float">🏰</div>
+            </div>
+
+            <div class="text-center z-10 mt-6 sm:mt-10">
+                <div class="inline-block bg-amber-950/80 border-2 border-amber-500/60 text-amber-300 px-4 py-1 rounded-full text-xs sm:text-sm font-semibold tracking-widest uppercase mb-3 shadow-lg">
+                    Easy Science Educational RPG for Primary Students
+                </div>
+                <h1 class="font-prompt text-3xl sm:text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] tracking-wide">
+                    The Knight's Journey
+                </h1>
+                <p class="text-lg sm:text-2xl text-amber-100 font-semibold mt-1 drop-shadow-md">
+                    ภารกิจไขปริศนาวิทยาศาสตร์ช่วยเจ้าหญิง
+                </p>
+            </div>
+
+            <div class="flex justify-between items-end w-full max-w-2xl px-4 z-10 my-6">
+                <div class="flex flex-col items-center">
+                    <div class="text-5xl sm:text-7xl filter drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">⚔️🛡️</div>
+                    <span class="text-xs font-bold text-amber-200 bg-black/60 px-2 py-0.5 rounded mt-1">อัศวินน้อย</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="text-6xl sm:text-8xl filter drop-shadow-[0_8px_8px_rgba(0,0,0,0.9)] animate-pulse">😈</div>
+                    <span class="text-xs font-bold text-red-400 bg-black/60 px-2 py-0.5 rounded mt-1">จอมปีศาจมัลการ์</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <span class="text-5xl sm:text-7xl filter drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">👸🏻</span>
+                        <span class="absolute -top-3 -right-2 text-2xl animate-bounce">🏰</span>
+                    </div>
+                    <span class="text-xs font-bold text-pink-300 bg-black/60 px-2 py-0.5 rounded mt-1">เจ้าหญิงเอลิน่า</span>
+                </div>
+            </div>
+
+            <div class="w-full max-w-sm flex flex-col space-y-3 z-10 mb-4">
+                <button onclick="startGameStory()" class="btn-rpg-wood py-3.5 px-6 rounded-xl text-xl font-bold text-yellow-100 flex items-center justify-center space-x-2">
+                    <span>▶</span>
+                    <span>เริ่มการผจญภัย</span>
+                </button>
+                <button onclick="openCanvaEditor()" class="btn-rpg-purple py-3 px-6 rounded-xl text-lg font-bold text-purple-100 flex items-center justify-center space-x-2 shadow-xl">
+                    <span>🎨</span>
+                    <span>ปรับแต่งคำถาม (Canva Editor)</span>
+                </button>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="openModal('modal-how-to')" class="btn-rpg-wood py-2 text-sm font-semibold text-yellow-100">📖 วิธีเล่น</button>
+                    <button onclick="openModal('modal-settings')" class="btn-rpg-wood py-2 text-sm font-semibold text-yellow-100">⚙️ ตั้งค่า</button>
+                    <button onclick="openModal('modal-credits')" class="btn-rpg-wood py-2 text-sm font-semibold text-yellow-100">🏆 ผู้สร้าง</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 2. STORY INTRO SCREEN ==================== -->
+        <section id="screen-story" class="hidden w-full flex-col items-center justify-between min-h-[85vh] rounded-3xl p-4 sm:p-6 relative overflow-hidden bg-cover bg-center border-4 border-slate-700 shadow-2xl my-auto"
+            style="background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95)), url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop');">
+            
+            <div class="w-full flex justify-between items-center border-b border-amber-500/30 pb-3">
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl">📜</span>
+                    <span class="font-bold text-amber-300 text-lg">บทนำเรื่องราว</span>
+                </div>
+                <button onclick="skipStory()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1 rounded text-slate-300">
+                    ข้ามเนื้อเรื่อง ⏩
+                </button>
+            </div>
+
+            <div class="my-auto flex flex-col items-center justify-center py-6 text-center">
+                <div id="story-avatar" class="text-7xl sm:text-9xl mb-4 transition-all duration-300 filter drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">🏰</div>
+                <div id="story-speaker" class="font-bold text-xl sm:text-2xl text-amber-300 mb-1">อาณาจักรออโรร่า</div>
+            </div>
+
+            <div class="w-full rpg-box-stone rounded-2xl p-4 sm:p-6 relative">
+                <p id="story-text" class="text-base sm:text-xl text-slate-100 min-h-[4.5rem] leading-relaxed">กำลังโหลดเนื้อเรื่อง...</p>
+                <div class="flex justify-between items-center mt-4 pt-2 border-t border-slate-700">
+                    <span class="text-xs text-slate-400" id="story-progress-text">ประโยคที่ 1/5</span>
+                    <button onclick="nextStorySentence()" class="btn-rpg-wood px-5 py-2 rounded-lg text-sm sm:text-base font-bold text-yellow-100 flex items-center space-x-1">
+                        <span>ถัดไป</span>
+                        <span>➔</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 3. WORLD MAP SCREEN ==================== -->
+        <section id="screen-map" class="hidden w-full flex-col items-center min-h-[90vh] rounded-3xl p-4 sm:p-6 relative overflow-hidden bg-slate-900 border-4 border-amber-800 shadow-2xl my-auto">
+            <div class="w-full text-center mb-4">
+                <h2 class="text-2xl sm:text-3xl font-bold text-amber-300 flex items-center justify-center gap-2">
+                    <span>🗺️</span> แผนที่วิทยาศาสตร์น่ารู้
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-300">เลือกด่านพิชิตปริศนาวิทยาศาสตร์รอบตัวเพื่อเก็บอัญมณีปัญญา</p>
+            </div>
+
+            <div class="w-full flex-grow overflow-y-auto max-h-[65vh] p-2 sm:p-4 rounded-2xl bg-slate-950/70 border border-amber-900/40">
+                <div id="map-nodes-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"></div>
+            </div>
+        </section>
+
+        <!-- ==================== 4. STAGE / QUESTION SCREEN ==================== -->
+        <section id="screen-stage" class="hidden w-full flex-col items-center justify-between min-h-[90vh] rounded-3xl p-4 sm:p-6 relative overflow-hidden bg-cover bg-center border-4 border-amber-700 shadow-2xl my-auto">
+            
+            <div class="w-full flex justify-between items-center bg-slate-900/80 backdrop-blur border border-amber-500/40 p-3 rounded-xl mb-3">
+                <div class="flex items-center space-x-2">
+                    <span id="stage-icon" class="text-2xl">🌲</span>
+                    <div>
+                        <div class="text-xs text-amber-400 font-semibold" id="stage-number-text">ด่านที่ 1</div>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-100" id="stage-title-text">หมู่บ้านเริ่มต้น</h3>
+                    </div>
+                </div>
+                <div class="text-xs bg-purple-900/80 border border-purple-400 text-purple-200 px-3 py-1 rounded-full font-semibold">
+                    รางวัล: 💎 อัญมณี
+                </div>
+            </div>
+
+            <div class="relative w-full h-44 sm:h-52 rounded-2xl overflow-hidden border-2 border-slate-600 bg-slate-950/80 flex items-center justify-around my-2 px-4">
+                <div class="flex flex-col items-center justify-center z-10">
+                    <div id="stage-npc-avatar" class="text-6xl sm:text-7xl animate-float filter drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">🧙‍♂️</div>
+                    <div id="stage-npc-name" class="text-xs font-bold bg-amber-950 border border-amber-500 text-amber-200 px-2 py-0.5 rounded-full mt-1">ผู้ใหญ่บ้าน</div>
+                </div>
+                <div class="flex flex-col items-center justify-center z-10">
+                    <div class="text-5xl sm:text-6xl filter drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">⚔️</div>
+                    <div class="text-xs font-bold bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded-full mt-1">อัศวินน้อย</div>
+                </div>
+            </div>
+
+            <div class="w-full rpg-box-stone rounded-2xl p-4 sm:p-5 my-2">
+                <div class="text-amber-300 text-xs sm:text-sm font-semibold mb-1 flex items-center gap-1">
+                    <span>💬</span> <span id="stage-dialogue-speaker">NPC กล่าวว่า:</span>
+                </div>
+                <p id="stage-dialogue-text" class="text-sm sm:text-base text-slate-200 mb-3 italic border-b border-slate-700/80 pb-2">"สวัสดีท่านอัศวิน!"</p>
+
+                <div class="text-base sm:text-lg font-bold text-yellow-200 mb-3" id="stage-question-text">คำถามกำลังโหลด...</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="stage-choices-container"></div>
+            </div>
+
+            <div class="w-full flex justify-between items-center mt-2">
+                <button onclick="goToMap()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-4 py-2 rounded-xl text-sm font-semibold">
+                    ↩️ ย้อนกลับไปแผนที่
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== 5. DEMON FINAL BATTLE SCREEN ==================== -->
+        <section id="screen-boss" class="hidden w-full flex-col items-center justify-between min-h-[90vh] rounded-3xl p-4 sm:p-6 relative overflow-hidden bg-cover bg-center border-4 border-red-800 shadow-2xl my-auto"
+            style="background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.85), rgba(69, 10, 10, 0.95)), url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop');">
+            
+            <div class="w-full text-center bg-red-950/80 border border-red-600/60 py-2 px-4 rounded-xl mb-3">
+                <span class="text-xs text-red-300 uppercase tracking-widest font-bold">ศึกตัดสินครั้งสุดท้าย</span>
+                <h2 class="text-xl sm:text-2xl font-black text-red-400">🏰 ปราสาทมืด : จอมปีศาจมัลการ์</h2>
+            </div>
+
+            <div class="relative w-full h-56 sm:h-64 rounded-2xl border-2 border-red-900 bg-black/60 flex items-center justify-between px-6 sm:px-12 my-2 overflow-hidden">
+                <div id="boss-knight-avatar" class="flex flex-col items-center z-10 transition-transform duration-300">
+                    <div class="text-6xl sm:text-8xl filter drop-shadow-[0_8px_8px_rgba(0,0,0,0.9)]">🗡️🛡️</div>
+                    <span class="text-xs font-bold bg-amber-900 border border-amber-400 text-amber-200 px-2 py-0.5 rounded mt-1">อัศวินดาบศักดิ์สิทธิ์</span>
+                </div>
+                <div class="text-2xl sm:text-4xl text-amber-400 font-extrabold animate-bounce">VS</div>
+                <div id="boss-demon-avatar" class="flex flex-col items-center z-10 transition-all duration-300">
+                    <div class="text-7xl sm:text-9xl filter drop-shadow-[0_10px_10px_rgba(255,0,0,0.5)] animate-pulse">😈</div>
+                    <span class="text-xs font-bold bg-red-950 border border-red-500 text-red-300 px-2 py-0.5 rounded mt-1">จอมปีศาจมัลการ์</span>
+                </div>
+            </div>
+
+            <div class="w-full rpg-box-stone border-red-900/80 rounded-2xl p-4 sm:p-5 my-2">
+                <div class="text-red-400 font-bold text-sm mb-1">😈 จอมปีศาจมัลการ์:</div>
+                <p id="boss-dialogue-text" class="text-base sm:text-lg text-slate-100 mb-4 font-semibold">"หึๆๆ! เจ้ามาถึงนี่จนได้!"</p>
+
+                <div id="boss-question-section" class="hidden">
+                    <p id="boss-question-text" class="text-lg font-bold text-yellow-300 mb-3 border-t border-slate-700 pt-2">คำถามสุดท้าย...</p>
+                    <div id="boss-choices-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+                </div>
+
+                <button id="boss-next-dialogue-btn" onclick="advanceBossDialogue()" class="w-full btn-rpg-wood py-3 rounded-xl font-bold text-yellow-100 mt-2">
+                    ฟังบทสนทนาถัดไป ➔
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== 6. CANVA GAME EDITOR STUDIO SCREEN ==================== -->
+        <section id="screen-canva-editor" class="hidden w-full flex-col items-center min-h-[90vh] rounded-3xl p-4 sm:p-6 bg-slate-900 border-4 border-purple-600 shadow-2xl my-auto">
+            <div class="w-full flex justify-between items-center bg-slate-950 border border-purple-500/50 p-3 rounded-2xl mb-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl">🎨</span>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold text-purple-300">Canva Game Editor Studio (วิทยาศาสตร์)</h2>
+                        <p class="text-xs text-slate-400">แก้ไขข้อความ ตัวละคร และโจทย์คำถามวิทยาศาสตร์ได้ตามชอบ</p>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="saveAndPlayEditor()" class="btn-rpg-wood text-xs px-3 py-2 rounded-xl text-yellow-100 font-bold">
+                        💾 บันทึกและทดลองเล่น
+                    </button>
+                    <button onclick="returnToMainMenu()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs px-3 py-2 rounded-xl">
+                        ❌ ปิด
+                    </button>
+                </div>
+            </div>
+
+            <div class="w-full flex overflow-x-auto space-x-2 pb-2 mb-4">
+                <div id="editor-stage-tabs-list" class="flex space-x-2"></div>
+            </div>
+
+            <div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-4 flex-grow overflow-y-auto max-h-[65vh] pr-1">
+                <!-- Preview Canvas -->
+                <div class="bg-slate-950 border-2 border-slate-700 p-4 rounded-2xl flex flex-col justify-between relative overflow-hidden">
+                    <div class="text-xs font-bold text-purple-400 uppercase mb-2 flex items-center justify-between">
+                        <span>🖼️ ตัวอย่างฉาก (Live Preview)</span>
+                        <span id="edit-preview-stage-tag" class="bg-purple-900/80 px-2 py-0.5 rounded text-purple-200">ด่านที่ 1</span>
+                    </div>
+
+                    <div id="editor-preview-bg" class="w-full h-48 sm:h-56 rounded-xl bg-cover bg-center border border-slate-700 p-3 flex flex-col justify-between relative"
+                         style="background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.9)), url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1000&auto=format&fit=crop');">
+                        <div class="flex justify-between items-center">
+                            <span id="editor-prev-icon-title" class="text-base font-bold bg-slate-900/80 px-2 py-1 rounded text-amber-300 border border-amber-500/40">🏡 หมู่บ้าน</span>
+                            <span class="text-xs bg-purple-900 px-2 py-1 rounded text-purple-200">💎 อัญมณี</span>
+                        </div>
+                        <div class="flex justify-around items-center my-1">
+                            <div class="text-center">
+                                <div id="editor-prev-npc-icon" class="text-5xl animate-float">🧙‍♂️</div>
+                                <span id="editor-prev-npc-name" class="text-xs bg-amber-950 px-2 py-0.5 rounded text-amber-200 font-bold border border-amber-600">NPC</span>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-4xl">⚔️</div>
+                                <span class="text-xs bg-slate-900 px-2 py-0.5 rounded text-slate-300">อัศวิน</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl mt-3 text-xs sm:text-sm">
+                        <p id="editor-prev-dialogue" class="text-slate-300 italic mb-2 border-b border-slate-800 pb-1">"บทสนทนาตัวอย่าง..."</p>
+                        <p id="editor-prev-question" class="text-yellow-300 font-bold mb-2">คำถามตัวอย่าง?</p>
+                        <div class="grid grid-cols-2 gap-1 text-xs text-slate-300">
+                            <div class="bg-slate-800 p-1.5 rounded border border-slate-700">A: <span id="editor-prev-a">ตัวเลือก A</span></div>
+                            <div class="bg-slate-800 p-1.5 rounded border border-slate-700">B: <span id="editor-prev-b">ตัวเลือก B</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Inputs -->
+                <div class="bg-slate-950 border-2 border-slate-700 p-4 rounded-2xl space-y-3 overflow-y-auto max-h-[60vh] text-xs sm:text-sm">
+                    <h3 class="font-bold text-amber-400 border-b border-slate-800 pb-1">⚙️ แก้ไขข้อมูลด่านที่เลือก</h3>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-slate-400 block mb-1">ชื่อด่าน:</label>
+                            <input type="text" id="edit-input-title" oninput="updateEditorPreview()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100">
+                        </div>
+                        <div>
+                            <label class="text-slate-400 block mb-1">ไอคอนด่าน (Emoji):</label>
+                            <input type="text" id="edit-input-icon" oninput="updateEditorPreview()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-slate-400 block mb-1">ชื่อ NPC:</label>
+                            <input type="text" id="edit-input-npc-name" oninput="updateEditorPreview()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100">
+                        </div>
+                        <div>
+                            <label class="text-slate-400 block mb-1">ไอคอน NPC (Emoji):</label>
+                            <input type="text" id="edit-input-npc-icon" oninput="updateEditorPreview()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-slate-400 block mb-1">URL ภาพพื้นหลัง:</label>
+                        <input type="text" id="edit-input-bg" oninput="updateEditorPreview()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100 text-xs">
+                    </div>
+
+                    <div>
+                        <label class="text-slate-400 block mb-1">บทสนทนา NPC:</label>
+                        <textarea id="edit-input-dialogue" oninput="updateEditorPreview()" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="text-slate-400 block mb-1">โจทย์คำถาม:</label>
+                        <textarea id="edit-input-question" oninput="updateEditorPreview()" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100 font-bold text-amber-200"></textarea>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-slate-400 block">ตัวเลือกคำตอบ (A B C D):</label>
+                        <input type="text" id="edit-input-choice-0" oninput="updateEditorPreview()" placeholder="ตัวเลือก A" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-slate-100">
+                        <input type="text" id="edit-input-choice-1" oninput="updateEditorPreview()" placeholder="ตัวเลือก B" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-slate-100">
+                        <input type="text" id="edit-input-choice-2" oninput="updateEditorPreview()" placeholder="ตัวเลือก C" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-slate-100">
+                        <input type="text" id="edit-input-choice-3" oninput="updateEditorPreview()" placeholder="ตัวเลือก D" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-slate-100">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+                        <div>
+                            <label class="text-slate-400 block mb-1">คำตอบที่ถูกต้อง:</label>
+                            <select id="edit-input-correct" onchange="updateEditorPreview()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-amber-300 font-bold">
+                                <option value="0">ข้อ A</option>
+                                <option value="1">ข้อ B</option>
+                                <option value="2">ข้อ C</option>
+                                <option value="3">ข้อ D</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-slate-400 block mb-1">คำอธิบายเฉลยเพิ่มเติม:</label>
+                        <textarea id="edit-input-explanation" oninput="updateEditorPreview()" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-100"></textarea>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 7. ENDING & GAME OVER SCREENS ==================== -->
+        <section id="screen-ending" class="hidden w-full flex-col items-center justify-between min-h-[90vh] rounded-3xl p-6 relative overflow-hidden bg-cover bg-center border-4 border-yellow-500 shadow-2xl my-auto text-center"
+            style="background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.7), rgba(120, 53, 15, 0.85)), url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop');">
+            <div class="z-10 mt-4">
+                <div class="text-5xl sm:text-7xl mb-2 animate-bounce">👑✨</div>
+                <h1 class="text-3xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-300 to-yellow-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)]">
+                    เก่งมาก! ช่วยเจ้าหญิงสำเร็จแล้ว!
+                </h1>
+                <p class="text-base sm:text-xl text-amber-200 mt-2 font-medium">ความรู้วิทยาศาสตร์และความกล้าหาญของคุณทำให้อาณาจักรออโรร่ากลับคืนสู่ความสงบสุข!</p>
+            </div>
+
+            <div class="flex items-center justify-center space-x-6 my-6 z-10 bg-slate-950/60 p-6 rounded-3xl border border-yellow-500/40">
+                <div class="text-6xl sm:text-8xl animate-float">🛡️⚔️</div>
+                <div class="text-4xl text-amber-400 font-bold animate-pulse">❤️</div>
+                <div class="text-6xl sm:text-8xl animate-float">👸🏻🌸</div>
+            </div>
+
+            <div class="w-full max-w-md bg-slate-900/90 border-2 border-amber-500/80 rounded-2xl p-5 z-10 shadow-2xl">
+                <h3 class="text-lg font-bold text-amber-300 mb-3 border-b border-amber-500/30 pb-1">สรุปผลการเรียนรู้</h3>
+                <div class="grid grid-cols-2 gap-4 text-left">
+                    <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                        <span class="text-xs text-slate-400 block">คะแนนรวมทั้งหมด</span>
+                        <span class="text-2xl font-bold text-amber-400" id="end-score">0</span> <span class="text-xs">คะแนน</span>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                        <span class="text-xs text-slate-400 block">อัญมณีแห่งปัญญา</span>
+                        <span class="text-2xl font-bold text-purple-400" id="end-gems">0/12</span> <span class="text-xs">เม็ด</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-sm flex flex-col space-y-3 z-10 mt-6 mb-2">
+                <button onclick="restartGame()" class="btn-rpg-wood py-3 rounded-xl text-lg font-bold text-yellow-100">🔄 เล่นใหม่อีกครั้ง</button>
+                <button onclick="returnToMainMenu()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 py-2.5 rounded-xl font-semibold">🏠 กลับสู่หน้าหลัก</button>
+            </div>
+        </section>
+
+        <section id="screen-gameover" class="hidden w-full flex-col items-center justify-center min-h-[85vh] rounded-3xl p-6 relative overflow-hidden bg-slate-950 border-4 border-red-900 shadow-2xl my-auto text-center">
+            <div class="text-7xl sm:text-9xl mb-4 animate-pulse">💀</div>
+            <h2 class="text-4xl sm:text-6xl font-black text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] mb-2">GAME OVER</h2>
+            <p class="text-lg sm:text-xl text-slate-300 max-w-md mb-8">หัวใจหมดเสียแล้ว... ไม่เป็นไรนะ ลองใหม่อีกครั้ง!</p>
+            <div class="w-full max-w-xs flex flex-col space-y-3">
+                <button onclick="restartGame()" class="btn-rpg-wood py-3 rounded-xl text-lg font-bold text-yellow-100">⚔️ สู้ใหม่อีกครั้ง</button>
+                <button onclick="returnToMainMenu()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 py-2.5 rounded-xl font-semibold">🏠 กลับสู่หน้าหลัก</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+    <div id="modal-result" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div id="modal-result-card" class="w-full max-w-md rpg-box-stone rounded-2xl p-6 text-center transform transition-all scale-95 opacity-0">
+            <div id="result-icon" class="text-6xl sm:text-7xl mb-3">🎉</div>
+            <h3 id="result-title" class="text-2xl font-bold mb-2">ยอดเยี่ยม!</h3>
+            <p id="result-message" class="text-slate-200 text-sm sm:text-base mb-4 leading-relaxed">เจ้าผ่านบททดสอบแล้ว!</p>
+            <div id="result-explanation-box" class="hidden bg-slate-900/90 border border-slate-700 p-3 rounded-xl text-left text-xs sm:text-sm text-slate-300 mb-5">
+                <span class="font-bold text-amber-400 block mb-1">💡 ความรู้วิทยาศาสตร์น่ารู้:</span>
+                <span id="result-explanation-text">...</span>
+            </div>
+            <button id="result-action-btn" onclick="closeResultModal()" class="w-full btn-rpg-wood py-3 rounded-xl text-base font-bold text-yellow-100">ตกลง</button>
+        </div>
+    </div>
+
+    <div id="modal-how-to" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="w-full max-w-lg rpg-box-stone rounded-2xl p-6 text-left relative">
+            <h3 class="text-xl font-bold text-amber-300 mb-3 flex items-center gap-2"><span>📖</span> วิธีเล่นเกม</h3>
+            <div class="space-y-3 text-sm text-slate-200 max-h-[60vh] overflow-y-auto pr-2">
+                <p>1. <strong>ภารกิจ:</strong> ตอบคำถามวิทยาศาสตร์ง่ายๆ รอบตัวเพื่อสะสมอัญมณีปัญญา 💎 ทั้งหมด 12 เม็ดไปช่วยเจ้าหญิง</p>
+                <p>2. <strong>หัวใจ ❤️:</strong> มีหัวใจ 3 ดวง ตอบผิดเสีย 1 ดวง ถ้าหมดต้องเริ่มใหม่</p>
+                <p>3. <strong>ปรับแต่งคำถาม:</strong> สามารถกดปุ่ม "🎨 ปรับแต่งคำถาม" เพื่อเพิ่มหรือเปลี่ยนโจทย์คำถามเองได้ตลอดเวลา</p>
+            </div>
+            <button onclick="closeModal('modal-how-to')" class="w-full mt-5 bg-slate-700 hover:bg-slate-600 border border-slate-500 py-2.5 rounded-xl font-bold">เข้าใจแล้ว</button>
+        </div>
+    </div>
+
+    <div id="modal-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="w-full max-w-md rpg-box-stone rounded-2xl p-6 text-left">
+            <h3 class="text-xl font-bold text-amber-300 mb-4 flex items-center gap-2"><span>⚙️</span> ตั้งค่าเกม</h3>
+            <div class="space-y-4 text-sm text-slate-200">
+                <div class="flex items-center justify-between">
+                    <span>เสียงเอฟเฟกต์ (SFX / Sound)</span>
+                    <input type="checkbox" id="setting-sfx" checked class="w-5 h-5 accent-amber-500 cursor-pointer">
+                </div>
+                <div class="flex items-center justify-between">
+                    <span>เอฟเฟกต์แสงวิบวับ (Glow Effects)</span>
+                    <input type="checkbox" id="setting-glow" checked class="w-5 h-5 accent-amber-500 cursor-pointer">
+                </div>
+            </div>
+            <button onclick="closeModal('modal-settings')" class="w-full mt-6 bg-slate-700 hover:bg-slate-600 border border-slate-500 py-2.5 rounded-xl font-bold">บันทึกการตั้งค่า</button>
+        </div>
+    </div>
+
+    <div id="modal-credits" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="w-full max-w-md rpg-box-stone rounded-2xl p-6 text-center">
+            <div class="text-5xl mb-2">🏆</div>
+            <h3 class="text-xl font-bold text-amber-300 mb-1">ผู้สร้างเกม</h3>
+            <p class="text-xs text-amber-400 mb-4">The Knight's Journey Project (Easy Science)</p>
+            <div class="bg-slate-900/80 p-4 rounded-xl text-sm text-slate-200 space-y-2 border border-slate-700 text-left">
+                <p><strong>ชื่อเกม:</strong> The Knight's Journey : ภารกิจช่วยเจ้าหญิง</p>
+                <p><strong>เนื้อหา:</strong> ความรู้วิทยาศาสตร์รอบตัวระดับประถมศึกษา</p>
+            </div>
+            <button onclick="closeModal('modal-credits')" class="w-full mt-5 bg-slate-700 hover:bg-slate-600 border border-slate-500 py-2.5 rounded-xl font-bold">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- ==================== SCRIPT LOGIC ==================== -->
+    <script>
+        // ชุดคำถามวิทยาศาสตร์ง่ายๆ สำหรับประถมศึกษา
+        let STAGES_DATA = [
+            { 
+                id: 1, 
+                title: "หมู่บ้านเริ่มต้น", 
+                icon: "🏡", 
+                bgImg: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "คุณตาผู้ใหญ่บ้าน", 
+                npcIcon: "🧙‍♂️", 
+                dialogue: "สวัสดีอัศวินน้อย! ก่อนจะไป ผิวหนังของเรามีหน้าที่หลักคืออะไรนะ?", 
+                question: "ผิวหนังของมนุษย์ทำหน้าที่รับสัมผัสสิ่งใดเป็นหลัก?", 
+                choices: ["รับฟังเสียง", "รับรสอาหาร", "รับความรู้สึกร้อน เย็น และเจ็บปวด", "รับดมกลิ่น"], 
+                correctIndex: 2, 
+                explanation: "ผิวหนังทำหน้าที่รับความรู้สึกสัมผัส เช่น ความร้อน ความเย็น และความเจ็บปวด" 
+            },
+            { 
+                id: 2, 
+                title: "ป่าปริศนา", 
+                icon: "🌲", 
+                bgImg: "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "พี่กระรอกผู้พิทักษ์", 
+                npcIcon: "🐿️", 
+                dialogue: "ยินดีต้อนรับสู่ป่า! ต้นไม้ใช้ส่วนใดในการดูดน้ำจากใต้ดินขึ้นมานะ?", 
+                question: "ส่วนใดของพืชทำหน้าที่ดูดน้ำและแร่ธาตุจากดิน?", 
+                choices: ["ใบ", "ราก", "ดอก", "ผล"], 
+                correctIndex: 1, 
+                explanation: "รากทำหน้าที่ยึดลำต้นและดูดน้ำพร้อมแร่ธาตุจากดินขึ้นไปเลี้ยงส่วนต่างๆ ของพืช" 
+            },
+            { 
+                id: 3, 
+                title: "แม่น้ำแห่งชีวิต", 
+                icon: "🌊", 
+                bgImg: "https://images.unsplash.com/photo-1437482078695-73f5ca6c96e2?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "คุณเต่าน้ำจืด", 
+                npcIcon: "🐢", 
+                dialogue: "สายน้ำไหลเย็น! ปลาน้ำจืดใช้ส่วนใดในการหายใจใต้น้ำ?", 
+                question: "ปลาใช้อวัยวะส่วนใดในการหายใจเอาออกซิเจนในน้ำไปใช้?", 
+                choices: ["เหงือก", "ปอด", "จมูก", "ปีก"], 
+                correctIndex: 0, 
+                explanation: "ปลาใช้ 'เหงือก' ในการกรองก๊าซออกซิเจนที่ละลายอยู่ในน้ำเพื่อใช้ในการหายใจ" 
+            },
+            { 
+                id: 4, 
+                title: "หุบเขาสายฟ้า", 
+                icon: "⚡", 
+                bgImg: "https://images.unsplash.com/photo-1511149758257-319b16e138a0?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "นกฮูกปัญญาเลิศ", 
+                npcIcon: "🦉", 
+                dialogue: "มองเห็นแสงวูบวาบไหม? แสงเดินทางอย่างไรกันนะ?", 
+                question: "แสงเดินทางจากแหล่งกำเนิดแสงในลักษณะใด?", 
+                choices: ["เดินทางเป็นเส้นโค้ง", "เดินทางเป็นเส้นตรงทุกทิศทาง", "เดินทางเป็นวงกลม", "เดินทางซิกแซกไปมา"], 
+                correctIndex: 1, 
+                explanation: "แสงเคลื่อนที่ออกจากแหล่งกำเนิดแสงเป็นเส้นตรงกระจายออกไปทุกทิศทาง" 
+            },
+            { 
+                id: 5, 
+                title: "ถ้ำเพลิง", 
+                icon: "🔥", 
+                bgImg: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "มังกรน้อยไฟแรง", 
+                npcIcon: "🐉", 
+                dialogue: "ถ้ำนี้อุ่นจนน้ำแข็งละลายเลย! น้ำแข็งละลายเรียกว่าการเปลี่ยนสถานะแบบใด?", 
+                question: "การที่น้ำแข็งก้อนเปลี่ยนเป็นน้ำเหลว เรียกว่าปรากฏการณ์ใด?", 
+                choices: ["การหลอมเหลว", "การแข็งตัว", "การควบแน่น", "การระเหย"], 
+                correctIndex: 0, 
+                explanation: "เมื่อของแข็ง (น้ำแข็ง) ได้รับความร้อนจะเปลี่ยนเป็นของเหลว (น้ำ) เรียกว่าการหลอมเหลว" 
+            },
+            { 
+                id: 6, 
+                title: "ป่าพิษ", 
+                icon: "☠️", 
+                bgImg: "https://images.unsplash.com/photo-1511497584788-8767610419ea?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "คุณหมอใจดี", 
+                npcIcon: "👨‍⚕️", 
+                dialogue: "รักษาสุขภาพให้ดีนะอัศวิน! อวัยวะใดทำหน้าที่สูบฉีดเลือดไปเลี้ยงทั่วร่างกาย?", 
+                question: "อวัยวะใดทำหน้าที่เปรียบเสมือนปั๊มสูบฉีดเลือดไปทั่วร่างกายของเรา?", 
+                choices: ["กระเพาะอาหาร", "ตับ", "หัวใจ", "ปอด"], 
+                correctIndex: 2, 
+                explanation: "หัวใจทำหน้าที่สูบฉีดเลือดที่มีออกซิเจนและสารอาหารไปเลี้ยงส่วนต่างๆ ของร่างกาย" 
+            },
+            { 
+                id: 7, 
+                title: "วิหารโบราณ", 
+                icon: "🏛️", 
+                bgImg: "https://images.unsplash.com/photo-1564507592333-c60657eea523?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "หุ่นยนต์วิหารโบราณ", 
+                npcIcon: "🤖", 
+                dialogue: "บี๊บ บู๊บ! แม่เหล็กดึงดูดวัตถุชนิดใดได้บ้าง?", 
+                question: "วัตถุในข้อใดสามารถถูกแม่เหล็กดึงดูดได้?", 
+                choices: ["ตะปูเหล็ก", "ไม้บรรทัดพลาสติก", "ยางลบ", "ผ้าเช็ดหน้า"], 
+                correctIndex: 0, 
+                explanation: "แม่เหล็กจะดึงดูดวัตถุที่เป็นสารแม่เหล็ก เช่น เหล็ก นิกเกิล ตะปู หรือเข็มหมุด" 
+            },
+            { 
+                id: 8, 
+                title: "ภูเขาหิมะ", 
+                icon: "❄️", 
+                bgImg: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "คุณหมีขาวใจดี", 
+                npcIcon: "🐻‍❄️", 
+                dialogue: "โฮ่งๆ บรู๊ว! สัตว์ชนิดใดบ้างนะที่เลี้ยงลูกด้วยนม?", 
+                question: "ข้อใดต่อไปนี้จัดเป็น 'สัตว์เลี้ยงลูกด้วยนม'?", 
+                choices: ["ไก่", "สุนัข", "ปลาดุก", "กบ"], 
+                correctIndex: 1, 
+                explanation: "สุนัขเป็นสัตว์เลี้ยงลูกด้วยนม (ไก่เป็นสัตว์ปีก, ปลาดุกเป็นสัตว์น้ำ, กบเป็นสัตว์สะเทินน้ำสะเทินบก)" 
+            },
+            { 
+                id: 9, 
+                title: "ห้องสมุดเวทมนตร์", 
+                icon: "📚", 
+                bgImg: "https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "คุณนกฮูกบรรณารักษ์", 
+                npcIcon: "🦉", 
+                dialogue: "เปิดตำราวิทยาศาสตร์! เสียงเกิดขึ้นได้อย่างไรกันนะ?", 
+                question: "เสียงต่างๆ ที่เราได้ยิน เกิดขึ้นมาจากสิ่งใดเป็นหลัก?", 
+                choices: ["การสั่นสะเทือนของวัตถุ", "การหยุดนิ่งของวัตถุ", "ความร้อนสูง", "การดูดกลืนแสง"], 
+                correctIndex: 0, 
+                explanation: "เสียงเกิดจากการสั่นสะเทือนของวัตถุแหล่งกำเนิดเสียง เช่น การเคาะ การดีด หรือการพูด" 
+            },
+            { 
+                id: 10, 
+                title: "ภูเขาไฟ", 
+                icon: "🌋", 
+                bgImg: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "ยักษ์หินใจดี", 
+                npcIcon: "🗿", 
+                dialogue: "โอ้โห! ลมพัดแรงมากๆ รู้ไหมว่าลมเกิดขึ้นได้อย่างไร?", 
+                question: "ลม เกิดจากการเคลื่อนที่ของสิ่งใด?", 
+                choices: ["ก้อนหิน", "น้ำทะเล", "อากาศ", "แสงแดด"], 
+                correctIndex: 2, 
+                explanation: "ลมเกิดจากการเคลื่อนที่ของอากาศจากบริเวณที่มีอุณหภูมิต่ำ (เย็น) ไปยังบริเวณที่มีอุณหภูมิสูง (ร้อน)" 
+            },
+            { 
+                id: 11, 
+                title: "หอคอยพระจันทร์", 
+                icon: "🌙", 
+                bgImg: "https://images.unsplash.com/photo-1532767153582-b1a0e5145009?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "กระต่ายบนดวงจันทร์", 
+                npcIcon: "🐇", 
+                dialogue: "หลังฝนตกบางครั้งจะมีรุ้งกินน้ำงดงาม! รุ้งกินน้ำมีกี่สีนะ?", 
+                question: "รุ้งกินน้ำบนท้องฟ้ามีทั้งหมดกี่สี?", 
+                choices: ["3 สี", "5 สี", "7 สี", "10 สี"], 
+                correctIndex: 2, 
+                explanation: "รุ้งกินน้ำมี 7 สี ได้แก่ ม่วง คราม น้ำเงิน เขียว เหลือง แสด แดง" 
+            },
+            { 
+                id: 12, 
+                title: "ปราสาทปีศาจ", 
+                icon: "🏰", 
+                bgImg: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1000&auto=format&fit=crop", 
+                npcName: "จอมปีศาจมัลการ์", 
+                npcIcon: "😈", 
+                dialogue: "ฮ่าๆๆ! ด่านสุดท้ายจงตอบคำถามเรื่องดวงดาวศูนย์กลางของระบบสุริยะมาเสียดีๆ!", 
+                question: "ดาวดวงใดเป็นดาวฤกษ์ดวงใหญ่ที่เป็นศูนย์กลางของระบบสุริยะ?", 
+                choices: ["ดวงจันทร์", "โลก", "ดาวอังคาร", "ดวงอาทิตย์"], 
+                correctIndex: 3, 
+                explanation: "ดวงอาทิตย์เป็นดาวฤกษ์ขนาดใหญ่ที่เป็นศูนย์กลางของระบบสุริยะ โดยมีโลกและดาวเคราะห์ดวงอื่นหมุนรอบ" 
+            }
+        ];
+
+        const STORY_SENTENCES = [
+            { speaker: "อาณาจักรออโรร่า", avatar: "🏰", text: "กาลครั้งหนึ่ง ณ อาณาจักรออโรร่าอันแสนสุขและเงียบสงบ..." },
+            { speaker: "ภัยพิบัติมาเยือน", avatar: "🌪️", text: "จู่ๆ จอมปีศาจมัลการ์ก็บุกมาลักพาตัวเจ้าหญิงเอลิน่าไป!" },
+            { speaker: "คำท้าทายจอมปีศาจ", avatar: "😈", text: "จอมปีศาจได้ตั้งคำถามความรู้วิทยาศาสตร์ไว้ตลอดเส้นทางเพื่อขัดขวางอัศวิน!" },
+            { speaker: "เจ้าหญิงเอลิน่า", avatar: "👸🏻", text: "ช่วยด้วย! มีเพียงอัศวินน้อยผู้เก่งวิทยาศาสตร์เท่านั้นที่จะช่วยข้าได้!" },
+            { speaker: "อัศวินน้อย (คุณ)", avatar: "⚔️", text: "ไม่ต้องกลัวนะเจ้าหญิง! ข้าจะใช้ความรู้วิทยาศาสตร์รอบตัวพาเจ้าหญิงกลับมาให้ได้!" }
+        ];
+
+        const BOSS_DIALOGUES = [
+            "ฮ่าๆๆ! เจ้าอัศวินน้อย! เจ้าผ่านด่านวิทยาศาสตร์ของข้ามาถึงนี่ได้อย่างไร!",
+            "แต่ด่านสุดท้ายนี้ข้าไม่ยอมแพ้ง่ายๆ หรอกนะ!",
+            "จงตอบคำถามเรื่องดวงดาวศูนย์กลางของจักรวาลข้อนี้มาให้ได้!"
+        ];
+
+        let gameState = {
+            score: 0,
+            hearts: 3,
+            maxHearts: 3,
+            gemsCollected: [],
+            currentStageId: 1,
+            unlockedStageId: 1,
+            storyIndex: 0,
+            bossDialogueIndex: 0,
+            editorStageIndex: 0
+        };
+
+        const AudioFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+            },
+            playCorrect() {
+                if (!document.getElementById('setting-sfx').checked) return;
+                this.init(); if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.4);
+            },
+            playWrong() {
+                if (!document.getElementById('setting-sfx').checked) return;
+                this.init(); if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(130, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.4);
+            },
+            playVictory() {
+                if (!document.getElementById('setting-sfx').checked) return;
+                this.init(); if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [523, 659, 783, 1046].forEach((f, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.value = f;
+                    gain.gain.setValueAtTime(0.15, now + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.3);
+                });
+            }
+        };
+
+        function hideAllScreens() {
+            ['screen-main-menu', 'screen-story', 'screen-map', 'screen-stage', 'screen-boss', 'screen-canva-editor', 'screen-ending', 'screen-gameover'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+        }
+
+        function showScreen(screenId) {
+            hideAllScreens();
+            const target = document.getElementById(screenId);
+            if (target) {
+                target.classList.remove('hidden');
+                target.classList.add('flex');
+            }
+            const hud = document.getElementById('hud-bar');
+            const hudMapBtn = document.getElementById('hud-map-btn');
+
+            if (['screen-main-menu', 'screen-story', 'screen-ending', 'screen-gameover', 'screen-canva-editor'].includes(screenId)) {
+                hud.classList.add('hidden');
+            } else {
+                hud.classList.remove('hidden');
+                hudMapBtn.classList.toggle('hidden', screenId === 'screen-map');
+            }
+            updateHUD();
+        }
+
+        function updateHUD() {
+            const container = document.getElementById('hearts-container');
+            container.innerHTML = '';
+            for (let i = 0; i < gameState.maxHearts; i++) {
+                const s = document.createElement('span');
+                s.className = 'text-base sm:text-lg';
+                s.textContent = i < gameState.hearts ? '❤️' : '🖤';
+                if (i >= gameState.hearts) s.classList.add('opacity-40');
+                container.appendChild(s);
+            }
+            document.getElementById('gem-count').textContent = gameState.gemsCollected.length;
+            document.getElementById('score-count').textContent = gameState.score;
+        }
+
+        function startGameStory() {
+            gameState.storyIndex = 0;
+            showScreen('screen-story');
+            renderStorySentence();
+        }
+
+        function renderStorySentence() {
+            const current = STORY_SENTENCES[gameState.storyIndex];
+            document.getElementById('story-avatar').textContent = current.avatar;
+            document.getElementById('story-speaker').textContent = current.speaker;
+            document.getElementById('story-text').textContent = current.text;
+            document.getElementById('story-progress-text').textContent = `ประโยคที่ ${gameState.storyIndex + 1}/${STORY_SENTENCES.length}`;
+        }
+
+        function nextStorySentence() {
+            gameState.storyIndex++;
+            if (gameState.storyIndex < STORY_SENTENCES.length) renderStorySentence();
+            else goToMap();
+        }
+
+        function skipStory() { goToMap(); }
+
+        function goToMap() {
+            showScreen('screen-map');
+            renderMapNodes();
+        }
+
+        function renderMapNodes() {
+            const grid = document.getElementById('map-nodes-grid');
+            grid.innerHTML = '';
+            STAGES_DATA.forEach((stage) => {
+                const isUnlocked = stage.id <= gameState.unlockedStageId;
+                const isCompleted = gameState.gemsCollected.includes(stage.id);
+                const card = document.createElement('div');
+                card.className = `relative p-4 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+                    isCompleted ? 'bg-emerald-950/80 border-emerald-500 shadow-lg' : isUnlocked ? 'bg-amber-950/70 border-amber-500 hover:border-yellow-300 hover:scale-[1.02] cursor-pointer' : 'bg-slate-900/50 border-slate-700 opacity-60 cursor-not-allowed'
+                }`;
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-3xl">${stage.icon}</span>
+                        ${isCompleted ? '<span class="bg-emerald-500 text-slate-950 font-extrabold text-xs px-2.5 py-1 rounded-full">✓ ผ่านแล้ว</span>' : isUnlocked ? '<span class="bg-amber-500 text-slate-950 font-bold text-xs px-2 py-0.5 rounded-full">ปลดล็อกแล้ว</span>' : '<span class="text-slate-500 text-lg">🔒</span>'}
+                    </div>
+                    <div>
+                        <div class="text-xs text-amber-300/80 font-semibold">ด่านที่ ${stage.id}</div>
+                        <h4 class="font-bold text-base text-slate-100">${stage.title}</h4>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+                        <span class="text-slate-400">รางวัล: 💎</span>
+                        ${isUnlocked ? `<button onclick="enterStage(${stage.id})" class="btn-rpg-wood text-xs px-3 py-1 rounded-lg text-yellow-100 font-bold">${isCompleted ? 'เล่นซ้ำ' : 'เข้าผจญภัย'}</button>` : '<span class="text-slate-500">ล็อกอยู่</span>'}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function enterStage(stageId) {
+            gameState.currentStageId = stageId;
+            if (stageId === 12) { enterBossStage(); return; }
+            const stage = STAGES_DATA.find(s => s.id === stageId);
+            if (!stage) return;
+
+            showScreen('screen-stage');
+            document.getElementById('screen-stage').style.backgroundImage = `linear-gradient(to bottom, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), url('${stage.bgImg}')`;
+
+            document.getElementById('stage-icon').textContent = stage.icon;
+            document.getElementById('stage-number-text').textContent = `ด่านที่ ${stage.id}`;
+            document.getElementById('stage-title-text').textContent = stage.title;
+            document.getElementById('stage-npc-avatar').textContent = stage.npcIcon;
+            document.getElementById('stage-npc-name').textContent = stage.npcName;
+            document.getElementById('stage-dialogue-speaker').textContent = `${stage.npcName} กล่าวว่า:`;
+            document.getElementById('stage-dialogue-text').textContent = `"${stage.dialogue}"`;
+            document.getElementById('stage-question-text').textContent = stage.question;
+
+            const container = document.getElementById('stage-choices-container');
+            container.innerHTML = '';
+            const prefixes = ['A', 'B', 'C', 'D'];
+            stage.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 hover:border-amber-400 p-3 rounded-xl transition text-sm flex items-start space-x-2 shadow-md';
+                btn.onclick = () => handleAnswerChoice(index);
+                btn.innerHTML = `<span class="bg-amber-600/40 text-amber-300 border border-amber-500/50 rounded px-2 py-0.5 font-bold text-xs mt-0.5">${prefixes[index]}</span><span class="text-slate-100 flex-grow">${choice}</span>`;
+                container.appendChild(btn);
+            });
+        }
+
+        function handleAnswerChoice(selectedIndex) {
+            const stage = STAGES_DATA.find(s => s.id === gameState.currentStageId);
+            if (!stage) return;
+            const isCorrect = selectedIndex === stage.correctIndex;
+
+            if (isCorrect) {
+                AudioFX.playCorrect();
+                gameState.score += 10;
+                if (!gameState.gemsCollected.includes(stage.id)) gameState.gemsCollected.push(stage.id);
+                if (stage.id === gameState.unlockedStageId && gameState.unlockedStageId < 12) gameState.unlockedStageId++;
+                updateHUD();
+
+                showResultModal({
+                    isSuccess: true,
+                    title: "เก่งมาก! ตอบถูกแล้ว!",
+                    message: `ยอดเยี่ยม! รับไปเลย +10 คะแนน และได้ 💎 อัญมณีแห่งปัญญาประจำด่าน ${stage.title}`,
+                    explanation: stage.explanation,
+                    btnText: stage.id === 12 ? "ปราบจอมปีศาจ!" : "ไปด่านต่อไป ➔",
+                    onConfirm: () => {
+                        if (stage.id < 12) enterStage(stage.id + 1);
+                        else triggerVictoryEnding();
+                    }
+                });
+                if (document.getElementById('setting-glow').checked) confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+            } else {
+                AudioFX.playWrong();
+                gameState.hearts--;
+                updateHUD();
+
+                if (gameState.hearts <= 0) {
+                    showResultModal({
+                        isSuccess: false, title: "หัวใจหมดแล้ว...", message: "ไม่เป็นไรนะ ลองเริ่มใหม่อีกครั้ง!", explanation: stage.explanation, btnText: "ดูหน้า Game Over",
+                        onConfirm: () => showScreen('screen-gameover')
+                    });
+                } else {
+                    showResultModal({
+                        isSuccess: false, title: "ยังไม่ถูกต้องนะ", message: `ลองคิดดูใหม่อีกทีนะ (เหลือ ❤️ ${gameState.hearts} ดวง)`, explanation: stage.explanation, btnText: "ลองใหม่อีกครั้ง 🔄"
+                    });
+                }
+            }
+        }
+
+        function enterBossStage() {
+            gameState.currentStageId = 12;
+            gameState.bossDialogueIndex = 0;
+            showScreen('screen-boss');
+            document.getElementById('boss-dialogue-text').textContent = `"${BOSS_DIALOGUES[0]}"`;
+            document.getElementById('boss-question-section').classList.add('hidden');
+            document.getElementById('boss-next-dialogue-btn').classList.remove('hidden');
+        }
+
+        function advanceBossDialogue() {
+            gameState.bossDialogueIndex++;
+            if (gameState.bossDialogueIndex < BOSS_DIALOGUES.length) {
+                document.getElementById('boss-dialogue-text').textContent = `"${BOSS_DIALOGUES[gameState.bossDialogueIndex]}"`;
+            } else {
+                document.getElementById('boss-next-dialogue-btn').classList.add('hidden');
+                document.getElementById('boss-dialogue-text').textContent = `"ตอบคำถามนี้ให้ได้ ถ้าอยากช่วยเจ้าหญิง!"`;
+                const bossStage = STAGES_DATA.find(s => s.id === 12);
+                document.getElementById('boss-question-text').textContent = bossStage.question;
+
+                const container = document.getElementById('boss-choices-container');
+                container.innerHTML = '';
+                const prefixes = ['A', 'B', 'C', 'D'];
+                bossStage.choices.forEach((choice, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'w-full text-left bg-red-950/80 hover:bg-red-900 border border-red-700 hover:border-amber-400 p-3 rounded-xl transition text-sm flex items-start space-x-2 shadow-lg';
+                    btn.onclick = () => handleBossAnswerChoice(index);
+                    btn.innerHTML = `<span class="bg-amber-600 text-amber-100 rounded px-2 py-0.5 font-bold text-xs mt-0.5">${prefixes[index]}</span><span class="text-slate-100 flex-grow">${choice}</span>`;
+                    container.appendChild(btn);
+                });
+                document.getElementById('boss-question-section').classList.remove('hidden');
+            }
+        }
+
+        function handleBossAnswerChoice(selectedIndex) {
+            const bossStage = STAGES_DATA.find(s => s.id === 12);
+            if (selectedIndex === bossStage.correctIndex) {
+                document.getElementById('boss-knight-avatar').classList.add('animate-attack-knight');
+                setTimeout(() => document.getElementById('boss-demon-avatar').classList.add('animate-hit-demon'), 300);
+                setTimeout(() => {
+                    document.getElementById('boss-knight-avatar').classList.remove('animate-attack-knight');
+                    document.getElementById('boss-demon-avatar').classList.remove('animate-hit-demon');
+                    handleAnswerChoice(selectedIndex);
+                }, 700);
+            } else {
+                handleAnswerChoice(selectedIndex);
+            }
+        }
+
+        /* ----------------------------------------------------
+           CANVA EDITOR STUDIO LOGIC
+        ---------------------------------------------------- */
+        function openCanvaEditor() {
+            showScreen('screen-canva-editor');
+            renderEditorTabs();
+            loadStageToEditor(gameState.editorStageIndex);
+        }
+
+        function renderEditorTabs() {
+            const container = document.getElementById('editor-stage-tabs-list');
+            container.innerHTML = '';
+            STAGES_DATA.forEach((stage, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition border ${
+                    idx === gameState.editorStageIndex ? 'bg-purple-600 border-purple-300 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                }`;
+                btn.textContent = `${stage.icon} ด่านที่ ${stage.id}`;
+                btn.onclick = () => {
+                    gameState.editorStageIndex = idx;
+                    renderEditorTabs();
+                    loadStageToEditor(idx);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function loadStageToEditor(idx) {
+            const stage = STAGES_DATA[idx];
+            if (!stage) return;
+
+            document.getElementById('edit-input-title').value = stage.title;
+            document.getElementById('edit-input-icon').value = stage.icon;
+            document.getElementById('edit-input-npc-name').value = stage.npcName;
+            document.getElementById('edit-input-npc-icon').value = stage.npcIcon;
+            document.getElementById('edit-input-bg').value = stage.bgImg;
+            document.getElementById('edit-input-dialogue').value = stage.dialogue;
+            document.getElementById('edit-input-question').value = stage.question;
+
+            stage.choices.forEach((c, i) => {
+                document.getElementById(`edit-input-choice-${i}`).value = c;
+            });
+
+            document.getElementById('edit-input-correct').value = stage.correctIndex;
+            document.getElementById('edit-input-explanation').value = stage.explanation;
+
+            updateEditorPreview();
+        }
+
+        function updateEditorPreview() {
+            const idx = gameState.editorStageIndex;
+            STAGES_DATA[idx].title = document.getElementById('edit-input-title').value;
+            STAGES_DATA[idx].icon = document.getElementById('edit-input-icon').value;
+            STAGES_DATA[idx].npcName = document.getElementById('edit-input-npc-name').value;
+            STAGES_DATA[idx].npcIcon = document.getElementById('edit-input-npc-icon').value;
+            STAGES_DATA[idx].bgImg = document.getElementById('edit-input-bg').value;
+            STAGES_DATA[idx].dialogue = document.getElementById('edit-input-dialogue').value;
+            STAGES_DATA[idx].question = document.getElementById('edit-input-question').value;
+            STAGES_DATA[idx].choices[0] = document.getElementById('edit-input-choice-0').value;
+            STAGES_DATA[idx].choices[1] = document.getElementById('edit-input-choice-1').value;
+            STAGES_DATA[idx].choices[2] = document.getElementById('edit-input-choice-2').value;
+            STAGES_DATA[idx].choices[3] = document.getElementById('edit-input-choice-3').value;
+            STAGES_DATA[idx].correctIndex = parseInt(document.getElementById('edit-input-correct').value);
+            STAGES_DATA[idx].explanation = document.getElementById('edit-input-explanation').value;
+
+            document.getElementById('edit-preview-stage-tag').textContent = `ด่านที่ ${STAGES_DATA[idx].id}`;
+            document.getElementById('editor-preview-bg').style.backgroundImage = `linear-gradient(to bottom, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.9)), url('${STAGES_DATA[idx].bgImg}')`;
+            document.getElementById('editor-prev-icon-title').textContent = `${STAGES_DATA[idx].icon} ${STAGES_DATA[idx].title}`;
+            document.getElementById('editor-prev-npc-icon').textContent = STAGES_DATA[idx].npcIcon;
+            document.getElementById('editor-prev-npc-name').textContent = STAGES_DATA[idx].npcName;
+            document.getElementById('editor-prev-dialogue').textContent = `"${STAGES_DATA[idx].dialogue}"`;
+            document.getElementById('editor-prev-question').textContent = STAGES_DATA[idx].question;
+            document.getElementById('editor-prev-a').textContent = STAGES_DATA[idx].choices[0];
+            document.getElementById('editor-prev-b').textContent = STAGES_DATA[idx].choices[1];
+        }
+
+        function saveAndPlayEditor() {
+            showResultModal({
+                isSuccess: true,
+                title: "บันทึกเรียบร้อย!",
+                message: "ปรับเปลี่ยนโจทย์คำถามวิทยาศาสตร์เรียบร้อยแล้ว",
+                btnText: "ไปที่แผนที่การผจญภัย 🗺️",
+                onConfirm: () => goToMap()
+            });
+        }
+
+        function triggerVictoryEnding() {
+            showScreen('screen-ending');
+            AudioFX.playVictory();
+            document.getElementById('end-score').textContent = gameState.score;
+            document.getElementById('end-gems').textContent = `${gameState.gemsCollected.length}/12`;
+            if (document.getElementById('setting-glow').checked) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+        }
+
+        let modalConfirmCallback = null;
+        function showResultModal({ isSuccess, title, message, explanation, btnText, onConfirm }) {
+            const modal = document.getElementById('modal-result');
+            const card = document.getElementById('modal-result-card');
+            document.getElementById('result-icon').textContent = isSuccess ? '🎉' : '❌';
+            document.getElementById('result-title').textContent = title;
+            document.getElementById('result-title').className = `text-2xl font-bold mb-2 ${isSuccess ? 'text-emerald-400' : 'text-red-400'}`;
+            document.getElementById('result-message').textContent = message;
+
+            const expBox = document.getElementById('result-explanation-box');
+            if (explanation) {
+                expBox.classList.remove('hidden');
+                document.getElementById('result-explanation-text').textContent = explanation;
+            } else { expBox.classList.add('hidden'); }
+
+            document.getElementById('result-action-btn').textContent = btnText || 'ตกลง';
+            modalConfirmCallback = onConfirm;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => { card.classList.remove('scale-95', 'opacity-0'); card.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeResultModal() {
+            const modal = document.getElementById('modal-result');
+            const card = document.getElementById('modal-result-card');
+            card.classList.remove('scale-100', 'opacity-100'); card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                if (modalConfirmCallback) { modalConfirmCallback(); modalConfirmCallback = null; }
+            }, 150);
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function restartGame() {
+            gameState.score = 0; gameState.hearts = 3; gameState.gemsCollected = [];
+            gameState.currentStageId = 1; gameState.unlockedStageId = 1; gameState.storyIndex = 0;
+            updateHUD(); goToMap();
+        }
+
+        function returnToMainMenu() {
+            gameState.score = 0; gameState.hearts = 3; gameState.gemsCollected = [];
+            gameState.currentStageId = 1; gameState.unlockedStageId = 1;
+            updateHUD(); showScreen('screen-main-menu');
+        }
+
+        window.addEventListener('click', () => { AudioFX.init(); }, { once: true });
+        window.addEventListener('touchstart', () => { AudioFX.init(); }, { once: true });
+    </script>
+</body>
+</html>
